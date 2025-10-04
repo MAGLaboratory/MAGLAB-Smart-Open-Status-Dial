@@ -2,9 +2,11 @@ idf_component_register(
     SRCS
         "src/encoder_reader.cpp"
         "src/time_selector.cpp"
+        "src/touch_input.cpp"
     INCLUDE_DIRS
         "include"
     REQUIRES
+        board
         esp_driver_gpio
         esp_timer
         hal

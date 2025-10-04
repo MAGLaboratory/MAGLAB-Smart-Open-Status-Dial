@@ -95,6 +95,21 @@ void TimerEngine::task_entry(void* arg) {
     self->run();
 }
 
+void TimerEngine::enqueue_control(ControlCommand command) {
+    if (delta_queue_ == nullptr) {
+        return;
+    }
+
+    TimeDeltaEvent event{};
+    event.type = TimeEventType::Control;
+    event.total_seconds = static_cast<int32_t>(setpoint_seconds_);
+    event.delta_seconds = 0;
+    event.timestamp_us = static_cast<uint32_t>(esp_timer_get_time());
+    event.multiplier = 0;
+    event.control = command;
+    xQueueSend(delta_queue_, &event, portMAX_DELAY);
+}
+
 void TimerEngine::run() {
     TickType_t last_publish = xTaskGetTickCount();
     const TickType_t publish_interval = pdMS_TO_TICKS(1000 / config_.snapshot_hz);
@@ -102,6 +117,59 @@ void TimerEngine::run() {
     TimeDeltaEvent event;
     while (true) {
         if (xQueueReceive(delta_queue_, &event, pdMS_TO_TICKS(5)) == pdTRUE) {
+            if (event.type == TimeEventType::Control) {
+                bool changed = false;
+                switch (event.control) {
+                    case ControlCommand::ToggleRun:
+                        if (state_ == TimerState::Counting) {
+                            if (esp_timer_is_active(esp_timer_)) {
+                                esp_timer_stop(esp_timer_);
+                            }
+                            state_ = TimerState::Editing;
+                            remaining_ms_ = static_cast<int64_t>(setpoint_seconds_) * 1000;
+                            changed = true;
+                        } else {
+                            if (setpoint_seconds_ > 0) {
+                                remaining_ms_ = static_cast<int64_t>(setpoint_seconds_) * 1000;
+                                if (esp_timer_is_active(esp_timer_)) {
+                                    esp_timer_stop(esp_timer_);
+                                }
+                                esp_timer_start_periodic(esp_timer_, kTimerPeriodUs);
+                                state_ = TimerState::Counting;
+                                changed = true;
+                            }
+                        }
+                        break;
+                    case ControlCommand::Reset:
+                        if (setpoint_seconds_ != 0 || remaining_ms_ != 0 || state_ != TimerState::Idle) {
+                            setpoint_seconds_ = 0;
+                            remaining_ms_ = 0;
+                            if (esp_timer_is_active(esp_timer_)) {
+                                esp_timer_stop(esp_timer_);
+                            }
+                            state_ = TimerState::Idle;
+                            changed = true;
+                        }
+                        break;
+                    case ControlCommand::None:
+                    default:
+                        break;
+                }
+
+                if (changed) {
+                    TimerSnapshot snapshot{
+                        .state = state_,
+                        .setpoint_seconds = setpoint_seconds_,
+                        .remaining_seconds = static_cast<uint32_t>(remaining_ms_ <= 0 ? 0 : (remaining_ms_ / 1000)),
+                        .remaining_ms = static_cast<uint32_t>(remaining_ms_ <= 0 ? 0 : remaining_ms_),
+                        .monotonic_us = static_cast<uint64_t>(esp_timer_get_time()),
+                    };
+                    persistence::save(snapshot);
+                    publish_snapshot();
+                }
+                continue;
+            }
+
             if (event.type == TimeEventType::Delta) {
                 int64_t updated = static_cast<int64_t>(setpoint_seconds_) + static_cast<int64_t>(event.delta_seconds);
                 updated = std::max<int64_t>(

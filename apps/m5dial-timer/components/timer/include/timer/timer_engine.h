@@ -26,6 +26,7 @@ public:
 
     QueueHandle_t snapshot_queue() const { return snapshot_queue_; }
     void enqueue_time_delta(const TimeDeltaEvent& event);
+    void enqueue_control(ControlCommand command);
 
 private:
     static void timer_callback(void* arg);

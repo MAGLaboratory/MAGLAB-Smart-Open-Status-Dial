@@ -305,6 +305,16 @@ esp_err_t TouchController::init() {
         return ESP_OK;
     }
 
+    const int touch_reset_pin = PinMap::TOUCH_RESET;
+    if (touch_reset_pin >= 0) {
+        ESP_RETURN_ON_ERROR(ensure_gpio_output(touch_reset_pin, 1), TAG_TOUCH, "touch reset gpio failed");
+        vTaskDelay(ms_to_ticks(5));
+        ESP_RETURN_ON_ERROR(gpio_set_level(static_cast<gpio_num_t>(touch_reset_pin), 0), TAG_TOUCH, "touch reset low failed");
+        vTaskDelay(ms_to_ticks(10));
+        ESP_RETURN_ON_ERROR(gpio_set_level(static_cast<gpio_num_t>(touch_reset_pin), 1), TAG_TOUCH, "touch reset high failed");
+        vTaskDelay(ms_to_ticks(5));
+    }
+
     i2c_config_t cfg = {};
     cfg.mode = I2C_MODE_MASTER;
     cfg.sda_io_num = static_cast<gpio_num_t>(PinMap::TOUCH_SDA);

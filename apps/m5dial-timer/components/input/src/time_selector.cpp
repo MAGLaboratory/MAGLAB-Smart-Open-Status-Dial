@@ -77,6 +77,7 @@ void TimeSelector::run() {
                     commit_event.delta_seconds = 0;
                     commit_event.timestamp_us = static_cast<uint32_t>(now_us);
                     commit_event.multiplier = 0;
+                    commit_event.control = ControlCommand::None;
                     if (event_queue_ != nullptr) {
                         xQueueSend(event_queue_, &commit_event, portMAX_DELAY);
                     }
@@ -126,6 +127,7 @@ void TimeSelector::process_sample(const EncoderSample& sample) {
     event.delta_seconds = applied_delta;
     event.timestamp_us = sample.timestamp_us;
     event.multiplier = multiplier;
+    event.control = ControlCommand::None;
 
     if (event_queue_ != nullptr) {
         xQueueSend(event_queue_, &event, portMAX_DELAY);

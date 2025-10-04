@@ -28,7 +28,7 @@ An SDL-based LVGL harness lives under `tools/host-sim` for UI iteration without 
 scripts/host_sim.sh run
 ```
 
-The simulator launches a 360×360 window that follows the same snapshot updates the firmware publishes.
+The simulator launches a 240×240 window that follows the same snapshot updates the firmware publishes.
 
 ## Further Reading
 

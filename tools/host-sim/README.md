@@ -16,7 +16,7 @@ cmake --build build/host-sim
 ./build/host-sim/m5dial_host_sim
 ```
 
-The simulator opens a 360×360 window and loops a 15-minute countdown. Mouse
+The simulator opens a 240×240 window and loops a 15-minute countdown. Mouse
 input is mapped to LVGL's pointer device for interactive testing.
 
 ### Tweaks

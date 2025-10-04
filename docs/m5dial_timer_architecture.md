@@ -2,13 +2,13 @@
 
 ## 1. Hardware Snapshot
 
-- **Core**: ESP32-S3 (dual-core 240 MHz, 8 MB PSRAM, 16 MB flash, Wi-Fi/BLE 5 + USB OTG)
-- **Display**: 1.32" 360×360 round IPS TFT (GC9A01 driver) with capacitive touch overlay
-- **Input**: MT6701 magnetic angle sensor over I2C with push-button (quadrature pads unused)
-- **Touch**: FT3267 capacitive overlay sharing the encoder I2C bus (interrupt optional)
-- **Feedback**: 24 RGB LEDs ring (WS2812/ SK6812), 1 W speaker + class-D amp, vibration motor pads (unpopulated), power LED
-- **Sensors**: BM8563 RTC, AXP2101 PMIC, optional temperature sensor (internal), optional Hall sensor via GPIO
-- **Baseline drivers**: Custom ESP-IDF board support (`esp_lcd`, `esp_driver_spi/i2c/ledc`, `gpio`) tuned for the Dial hardware
+- **Core**: ESP32-S3-WROOM-1U-N16R8 module (dual-core 240 MHz, 16 MB flash, 8 MB PSRAM, Wi-Fi/BLE)
+- **Display**: GC9A01 1.32" 240×240 round IPS TFT (Φ32.4 mm active area) on FPC-05F-16PH20 connector, driven over SPI
+- **Input**: MT6701CT-STD magnetic angle sensor on shared I2C bus with press button on GPIO5
+- **Driver**: EG2133 power/backlight management for the round LCD
+- **Power chain**: KH-TYPE-C-16P USB-C, TP4054 Li-ion charger, ME6217C33 LDO, MT3608 boost converter
+- **Aux peripherals**: Optional DRV8833 haptic pads and speaker amp pads present but unused in firmware; ESP32 IO0 reserved for boot, IO3/7/21/35–40/45–48 unbonded
+- **Baseline drivers**: ESP-IDF components (`esp_lcd`, `esp_driver_spi/i2c/ledc`, `gpio`) tailored for the dial board
 
 > Note: We will treat HW inventory abstractly so the firmware builds against `m5dial` board profile without custom pin definitions in-line.
 
@@ -76,23 +76,23 @@ reimplementing bring-up code.
 
 ### Task Topology
 
-- **Encoder ISR (GPIO)** → high-resolution tick capture (`timestamp + delta`). Feeds lock-free ring buffer.
-- **Input Task (core 0, priority 9)** consumes ticks, applies debounce/velocity estimation, produces `SetpointChange` messages to the UI + Timer engine.
+- **Encoder Task (core 0, priority 9)** polls the MT6701 over I2C, converts angles into detent ticks, and queues `TimeDeltaEvent`s.
+- **Touch Task (core 1, priority 5)** samples the FT3267 controller and emits tap gestures for timer control.
 - **Timer Engine Task (core 0, prio 10)** maintains authoritative countdown state using `esp_timer` (1 ms). Publishes `TimerSnapshot` at 30 Hz or on significant change.
 - **UI Task (core 1, prio 8)** hosts LVGL loop at 60 FPS with dirty rectangles + vsync aware double buffering. Receives input and timer snapshots via message queues.
-- **Feedback Task (core 1, prio 6)** handles LED ring & audio envelopes triggered by UI events.
+- **Feedback hooks (future)** reserved for optional LED/audio outputs once the hardware is populated.
 - **Supervisor (core 0, prio 11)** monitors watchdogs, handles persistence writes, WDT feed, power state transitions (dim/idle/wake).
 
 All tasks communicate through checksumed `struct` messages in a central `event_bus`. Messages stored in `etl::variant` to avoid heap usage in ISR path.
 
 ### Data Flow
 
-1. Encoder tick enters `InputFilter` → computes velocity (ticks/s) and acceleration bucket.
-2. `TimeSelectionState` updates setpoint using configurable base increments (default 15 min) and velocity buckets: slow = base step, medium = 2×, fast = 4× (1 h with default). Quantization snaps to detents and always respects configured bounds.
-3. Upon release (1 s inactivity), engine commits setpoint and transitions to `Countdown` or `Idle` based on auto-start configuration.
+1. Touch + encoder tasks poll hardware and enqueue events (detent deltas, tap gestures).
+2. `TimeSelector` converts detents into configurable increments (15 min base with velocity multipliers) and pushes commit/control events.
+3. Upon inactivity (1 s), the selector commits the setpoint and transitions to `Countdown` or `Idle` based on auto-start configuration.
 4. Timer engine updates high-resolution remaining time; publishes to UI, LED, audio.
 5. UI renders 3 layers: background gradient (duration-aware color semantic), adaptive HH:MM:SS / MM:SS readout in a monospaced face, and a 360° progress ring with eased "spring unwind" motion that tracks durations up to 6 h. Color cues follow proportional thresholds (green >10 %, yellow 10–5 %, red ≤5 %) with floor guards at 10 min/5 min (or 2 min/1 min for short timers). Each threshold crossing animates via ≤150 ms fade and adds a non-color cue (ring pulse) for accessibility. LVGL tasks run with `lv_tick_inc(5)` triggered by `esp_timer` every 5 ms.
-6. Feedback layer triggers highlight pulses, audio ticks using precomputed envelopes (no dynamic allocation). LED ring updates run at ≤200 Hz.
+6. Optional feedback outputs (LED/audio) can subscribe to the same event stream once hardware is added. Touch taps currently toggle start/pause; additional gestures can layer on the same queue.
 
 ### State Machine
 
@@ -150,6 +150,6 @@ CI to be set up with GitHub Actions using `espressif/idf:latest` docker, caching
 1. **Scaffold**: Create app skeleton, stand up the ESP-IDF board layer + LVGL, bring up display + encoder baseline.
 2. **Core Loop**: Implement timer engine, input filtering, state machine, NVS settings.
 3. **UI**: Build LVGL layout, progress ring, color semantics, highlight feedback.
-4. **Feedback**: LED ring driver + audio cues behind feature flags.
+4. **Feedback**: LED/audio outputs (future work when hardware is populated).
 5. **Reliability**: Add WDT, snapshot recovery, drift calibration, soak test scripts.
 6. **Polish & Extensibility**: Config screens, OTA, telemetry.

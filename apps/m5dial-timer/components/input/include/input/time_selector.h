@@ -13,6 +13,13 @@ namespace dial {
 enum class TimeEventType : uint8_t {
     Delta,
     Commit,
+    Control,
+};
+
+enum class ControlCommand : uint8_t {
+    None,
+    ToggleRun,
+    Reset,
 };
 
 struct TimeSelectorConfig {
@@ -32,6 +39,7 @@ struct TimeDeltaEvent {
     int32_t delta_seconds;    // signed delta applied for this event
     uint32_t timestamp_us;    // when the encoder event occurred
     uint32_t multiplier;      // multiplier applied (1, medium, fast)
+    ControlCommand control = ControlCommand::None;
 };
 
 class TimeSelector {

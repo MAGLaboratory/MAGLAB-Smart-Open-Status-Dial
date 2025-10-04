@@ -18,11 +18,12 @@ status indication rather than the original haptic research platform.
 
 | Component | Notes |
 |-----------|-------|
-| M5Stack Dial | ESP32-S3, GC9A01 360×360 round display, FT3267 touch overlay, MT6701 angle sensor |
-| Power | Built-in AXP2101 PMIC controls; firmware keeps `POWER_HOLD` asserted |
-| Inputs | MT6701 magnetic angle sensor (I2C), push button on GPIO5 |
-| Outputs | GC9A01 display over SPI with LEDC backlight, placeholder RGB LED data pin |
-| Optional | DRV8833 motor pads, speaker amplifier pads (not yet driven by firmware) |
+| Core module | ESP32-S3-WROOM-1U-N16R8 (dual-core 240 MHz, 16 MB flash, 8 MB PSRAM) |
+| Display | GC9A01 1.32" 240×240 IPS panel (Φ32.4 mm active area) via FPC-05F-16PH20 connector |
+| Input | MT6701CT-STD magnetic angle sensor (I2C) + on-board push button |
+| Power path | KH-TYPE-C-16P USB-C, TP4054 charger, ME6217C33 LDO, MT3608 boost converter |
+| Driver | EG2133 LCD power/backlight driver driven by firmware LEDC |
+| Notes | Firmware targets the stock M5 Dial stack; IO0 kept for boot strap, IO3/7/21/35-40/45-48 left unbonded |
 
 Full pin assignments live in `docs/m5dial_pinmap.md` and are auto-generated from `board/pinmap.h`.
 
@@ -31,8 +32,9 @@ Full pin assignments live in `docs/m5dial_pinmap.md` and are auto-generated from
 - High-resolution countdown engine using `esp_timer` with NVS-backed state persistence.
 - LVGL 8 UI with progress arc, adaptive HH:MM[:SS] readout, and color semantics for status ranges.
 - Board support layer that initializes display, touch, power latch, and backlight dimming.
-- Input pipeline scaffold prepared for MT6701 sampling; legacy quadrature paths stubbed for testing.
+- Input pipeline now reads the MT6701 magnetic sensor and converts rotation into detent-aware timer deltas.
 - Configurable helper scripts for build, flash, and desktop simulation.
+- Single-touch tap toggles timer start/pause via the new touch input pipeline.
 
 ## Repository guide
 
@@ -73,7 +75,7 @@ Iterate on the LVGL UI without hardware using the SDL host simulator:
 scripts/host_sim.sh run
 ```
 
-A 360×360 window emulates the dial display and plays through a sample countdown sequence. Modify `tools/host-sim/src`
+A 240×240 window emulates the dial display and plays through a sample countdown sequence. Modify `tools/host-sim/src`
 to add scripted scenarios or integrate with host-side tests.
 
 ## Documentation hub

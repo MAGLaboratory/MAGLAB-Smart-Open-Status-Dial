@@ -19,10 +19,6 @@ namespace dial {
 struct DialBoardConfig {
     bool enable_display = true;
     bool enable_touch = true;
-    bool enable_led_ring = true;
-    bool enable_speaker = true;
-    bool enable_rtc = true;
-    bool enable_ble = false;
 };
 
 struct DisplayRegion {
