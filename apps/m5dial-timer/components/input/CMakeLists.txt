@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "src/encoder_reader.cpp"
+        "src/time_selector.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        esp_driver_gpio
+        esp_timer
+        hal
+)

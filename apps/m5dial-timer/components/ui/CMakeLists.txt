@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS
+        "src/display_driver.cpp"
+        "src/ui_root.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        lvgl
+        board
+        timer
+        esp_timer
+)

@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "src/timer_engine.cpp"
+        "src/state_machine.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        esp_timer
+        input
+        services
+)
