@@ -24,6 +24,7 @@
 
 1. **Feedback** (R12–R14)
    - LED ring cues, audio tick + chime with volume control.
+   - Voltage-mode haptics using EG2133 + MT6701 (SimpleFOC-style).
 2. **Config layer** (R18–R22)
    - Settings UI or JSON import via USB serial.
    - Auto-start mode, increment presets (5/15/30/60 min), max duration (1/2/4/6 h), dim/idle timer, audio toggles.
