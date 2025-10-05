@@ -8,6 +8,7 @@ This application targets the M5Stack Dial (ESP32-S3) and implements a polished c
 - Timer engine runs at 1 ms resolution, feeds LVGL snapshots, and persists state in NVS.
 - Baseline LVGL UI draws a progress arc and adaptive HH:MM[:SS] readout; host SDL simulator mirrors the layout.
 - Touch gestures: tap start/pause, double tap reset, edge taps adjust ±1 min, swipes jump ±5 min, two-finger tap locks the encoder.
+- EG2133 motor driven in voltage-mode for virtual detents and haptics.
 
 ## Build & Flash
 

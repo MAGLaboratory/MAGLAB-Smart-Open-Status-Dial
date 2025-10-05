@@ -78,7 +78,8 @@ reimplementing bring-up code.
 ### Task Topology
 
 - **Encoder Task (core 0, priority 9)** polls the MT6701 over I2C, converts angles into detent ticks, and queues `TimeDeltaEvent`s.
-- **Touch Task (core 1, priority 5)** samples the FT3267 controller and emits tap gestures for timer control.
+- **Touch Task (core 1, priority 5)** samples the FT3267 controller and emits tap/double-tap/swipe/two-finger gestures for timer control.
+- **Motor Task (core 1, priority 6)** drives the EG2133 via LEDC, using MT6701 angle feedback to generate voltage-mode detents.
 - **Timer Engine Task (core 0, prio 10)** maintains authoritative countdown state using `esp_timer` (1 ms). Publishes `TimerSnapshot` at 30 Hz or on significant change.
 - **UI Task (core 1, prio 8)** hosts LVGL loop at 60 FPS with dirty rectangles + vsync aware double buffering. Receives input and timer snapshots via message queues.
 - **Feedback hooks (future)** reserved for optional LED/audio outputs once the hardware is populated.
@@ -93,7 +94,8 @@ All tasks communicate through checksumed `struct` messages in a central `event_b
 3. Upon inactivity (1 s), the selector commits the setpoint and transitions to `Countdown` or `Idle` based on auto-start configuration.
 4. Timer engine updates high-resolution remaining time; publishes to UI, LED, audio.
 5. UI renders 3 layers: background gradient (duration-aware color semantic), adaptive HH:MM:SS / MM:SS readout in a monospaced face, and a 360° progress ring with eased "spring unwind" motion that tracks durations up to 6 h. Color cues follow proportional thresholds (green >10 %, yellow 10–5 %, red ≤5 %) with floor guards at 10 min/5 min (or 2 min/1 min for short timers). Each threshold crossing animates via ≤150 ms fade and adds a non-color cue (ring pulse) for accessibility. LVGL tasks run with `lv_tick_inc(5)` triggered by `esp_timer` every 5 ms.
-6. Optional feedback outputs (LED/audio) can subscribe to the same event stream once hardware is added. Gestures include tap (start/pause), double tap (reset), edge taps (±1 minute), swipes (±5 minutes), and two-finger tap (input lock) layered on the same queue.
+6. Optional feedback outputs (LED/audio) can subscribe to the same event stream once hardware is added. Haptics reuse the same event stream to provide virtual detents and torque cues.
+Default haptic tuning (7 pole pairs, 50 kHz PWM, voltage-mode detents) tracks the Makerfabs MaTouch Knob reference implementation of the EG2133 + MT6701 stack.
 
 ### State Machine
 

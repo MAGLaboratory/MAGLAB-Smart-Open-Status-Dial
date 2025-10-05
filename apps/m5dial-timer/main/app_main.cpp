@@ -9,6 +9,7 @@
 #include "board/pinmap.h"
 #include "input/encoder_reader.h"
 #include "input/time_selector.h"
+#include "haptics/motor_controller.h"
 #include "input/touch_input.h"
 #include "timer/timer_engine.h"
 #include "ui/display_driver.h"
@@ -106,6 +107,7 @@ void touch_event_dispatch(void* arg) {
             case dial::TouchEventType::TwoFingerTap:
                 input_locked = !input_locked;
                 dial::g_time_selector.set_input_locked(input_locked);
+                dial::g_motor_controller.enable(!input_locked);
                 ESP_LOGI(TAG, "Touch: %s input", input_locked ? "Locked" : "Unlocked");
                 break;
             default:
@@ -131,6 +133,17 @@ extern "C" void app_main(void) {
     ESP_ERROR_CHECK(dial::g_board.init(board_cfg));
 
     esp_err_t touch_status = dial::g_touch_input.init();
+    dial::HapticsConfig haptics_cfg{
+        .gpio_u = dial::PinMap::MOTOR_IN1,
+        .gpio_v = dial::PinMap::MOTOR_IN2,
+        .gpio_w = dial::PinMap::MOTOR_IN3,
+    };
+    if (dial::g_motor_controller.init(haptics_cfg) != ESP_OK) {
+        ESP_LOGW(TAG, "Motor controller failed to init");
+    } else {
+        dial::g_motor_controller.start();
+    }
+
     if (touch_status != ESP_OK) {
         ESP_LOGW(TAG, "Touch input unavailable (%s)", esp_err_to_name(touch_status));
     }

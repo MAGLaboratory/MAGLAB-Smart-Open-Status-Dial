@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+        "src/motor_controller.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        driver
+        esp_timer
+        input
+)

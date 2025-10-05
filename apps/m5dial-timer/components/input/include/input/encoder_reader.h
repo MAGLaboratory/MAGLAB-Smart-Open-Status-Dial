@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <atomic>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -36,6 +37,7 @@ public:
     EncoderReader() = default;
     esp_err_t init(const EncoderConfig& config);
     QueueHandle_t queue() const { return sample_queue_; }
+    bool latest_raw_angle(uint16_t* out) const;
 
 private:
     static void task_entry(void* arg);
@@ -45,8 +47,8 @@ private:
     EncoderConfig config_{};
     QueueHandle_t sample_queue_ = nullptr;
     TaskHandle_t task_handle_ = nullptr;
-    bool has_last_angle_ = false;
-    uint16_t last_angle_raw_ = 0;
+    std::atomic<bool> has_last_angle_{false};
+    std::atomic<uint16_t> last_angle_raw_{0};
     float residual_ticks_ = 0.0f;
     bool i2c_ready_ = false;
 };

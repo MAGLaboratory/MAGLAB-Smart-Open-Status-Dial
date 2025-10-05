@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <atomic>
 
 #include <esp_check.h>
 #include <esp_log.h>
@@ -19,6 +20,9 @@ EncoderReader g_encoder_reader;
 
 esp_err_t EncoderReader::init(const EncoderConfig& config) {
     config_ = config;
+
+    has_last_angle_.store(false, std::memory_order_relaxed);
+    last_angle_raw_.store(0, std::memory_order_relaxed);
 
     if (config_.sda_gpio < 0 || config_.scl_gpio < 0) {
         ESP_LOGE(TAG, "I2C pins for MT6701 are not configured");
@@ -83,6 +87,18 @@ void EncoderReader::task_entry(void* arg) {
     self->run();
 }
 
+
+bool EncoderReader::latest_raw_angle(uint16_t* out) const {
+    if (!out) {
+        return false;
+    }
+    if (!has_last_angle_.load(std::memory_order_relaxed)) {
+        return false;
+    }
+    *out = last_angle_raw_.load(std::memory_order_relaxed);
+    return true;
+}
+
 void EncoderReader::run() {
     const TickType_t delay_ticks = pdMS_TO_TICKS(std::max<uint32_t>(1, config_.poll_interval_ms));
     const float ticks_per_unit = static_cast<float>(config_.ticks_per_revolution) /
@@ -91,8 +107,8 @@ void EncoderReader::run() {
     while (true) {
         uint16_t raw = 0;
         if (read_raw_angle(&raw) == ESP_OK) {
-            if (has_last_angle_) {
-                int32_t delta = static_cast<int32_t>(raw) - static_cast<int32_t>(last_angle_raw_);
+            if (has_last_angle_.load(std::memory_order_relaxed)) {
+                int32_t delta = static_cast<int32_t>(raw) - static_cast<int32_t>(last_angle_raw_.load(std::memory_order_relaxed));
                 if (delta > kHalfResolution) {
                     delta -= kAngleResolution;
                 } else if (delta < -static_cast<int32_t>(kHalfResolution)) {
@@ -110,11 +126,11 @@ void EncoderReader::run() {
                     xQueueSend(sample_queue_, &sample, 0);
                 }
             } else {
-                has_last_angle_ = true;
+                has_last_angle_.store(true, std::memory_order_relaxed);
             }
-            last_angle_raw_ = raw;
+            last_angle_raw_.store(raw, std::memory_order_relaxed);
         } else {
-            has_last_angle_ = false;
+            has_last_angle_.store(false, std::memory_order_relaxed);
             residual_ticks_ = 0.0f;
         }
 
