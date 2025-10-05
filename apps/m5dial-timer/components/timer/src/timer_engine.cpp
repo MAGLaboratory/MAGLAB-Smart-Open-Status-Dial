@@ -110,6 +110,23 @@ void TimerEngine::enqueue_control(ControlCommand command) {
     xQueueSend(delta_queue_, &event, portMAX_DELAY);
 }
 
+void TimerEngine::enqueue_quick_delta(int32_t delta_seconds) {
+    if (delta_queue_ == nullptr) {
+        return;
+    }
+    TimeDeltaEvent event{};
+    event.type = TimeEventType::Delta;
+    event.delta_seconds = delta_seconds;
+    int64_t projected = static_cast<int64_t>(setpoint_seconds_) + static_cast<int64_t>(delta_seconds);
+    projected = std::max<int64_t>(0, projected);
+    projected = std::min<int64_t>(projected, static_cast<int64_t>(config_.max_total_seconds));
+    event.total_seconds = static_cast<int32_t>(projected);
+    event.timestamp_us = static_cast<uint32_t>(esp_timer_get_time());
+    event.multiplier = 1;
+    event.control = ControlCommand::None;
+    xQueueSend(delta_queue_, &event, portMAX_DELAY);
+}
+
 void TimerEngine::run() {
     TickType_t last_publish = xTaskGetTickCount();
     const TickType_t publish_interval = pdMS_TO_TICKS(1000 / config_.snapshot_hz);

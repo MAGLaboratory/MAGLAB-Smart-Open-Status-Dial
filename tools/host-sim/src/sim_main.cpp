@@ -8,9 +8,9 @@
 
 namespace {
 
-constexpr int kScreenSize = 360;
+constexpr int kScreenSize = 240;
 constexpr int kFrameIntervalMs = 16;  // ~60 FPS
-constexpr uint32_t kDemoSetpointSeconds = 15 * 60;
+constexpr uint32_t kDemoSetpointSeconds = 15 * 60;  // demo loop
 
 void update_snapshot(dial::TimerSnapshot& snapshot, uint32_t elapsed_ms) {
     const uint32_t total_ms = kDemoSetpointSeconds * 1000;

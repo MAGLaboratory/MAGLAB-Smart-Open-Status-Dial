@@ -32,6 +32,10 @@ struct PinMap {
     static constexpr int MOTOR_IN2 = 16;
     static constexpr int MOTOR_IN3 = 15;
 
+    // Misc monitoring
+    static constexpr int BATTERY_SENSE = 4;    // BAT_AD (voltage divider)
+    static constexpr int BOOT_STRAP = 0;       // Boot pin pulled up, momentary SW to GND
+
 };
 
 }  // namespace dial

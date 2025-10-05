@@ -23,7 +23,7 @@ status indication rather than the original haptic research platform.
 | Input | MT6701CT-STD magnetic angle sensor (I2C) + on-board push button |
 | Power path | KH-TYPE-C-16P USB-C, TP4054 charger, ME6217C33 LDO, MT3608 boost converter |
 | Driver | EG2133 LCD power/backlight driver driven by firmware LEDC |
-| Notes | Firmware targets the stock M5 Dial stack; IO0 kept for boot strap, IO3/7/21/35-40/45-48 left unbonded |
+| Notes | Firmware targets the stock M5 Dial stack; IO0 boot strap uses 10 kΩ pull-up, IO4 monitors battery via 330 kΩ divider, IO3/7/21/35-40/45-48 left unbonded |
 
 Full pin assignments live in `docs/m5dial_pinmap.md` and are auto-generated from `board/pinmap.h`.
 
@@ -34,7 +34,7 @@ Full pin assignments live in `docs/m5dial_pinmap.md` and are auto-generated from
 - Board support layer that initializes display, touch, power latch, and backlight dimming.
 - Input pipeline now reads the MT6701 magnetic sensor and converts rotation into detent-aware timer deltas.
 - Configurable helper scripts for build, flash, and desktop simulation.
-- Single-touch tap toggles timer start/pause via the new touch input pipeline.
+- Rich touch gestures: single tap start/pause, double tap reset, edge taps adjust presets, swipes jump minutes, two-finger tap locks the knob.
 
 ## Repository guide
 

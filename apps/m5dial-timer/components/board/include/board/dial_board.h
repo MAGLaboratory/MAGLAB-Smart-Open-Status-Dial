@@ -32,6 +32,7 @@ struct TouchPoint {
     bool touched = false;
     uint16_t x = 0;
     uint16_t y = 0;
+    uint8_t touch_count = 0;
 };
 
 class Backlight {
@@ -101,6 +102,9 @@ public:
     Display& display() { return *display_; }
     TouchController& touch() { return *touch_; }
     Backlight& backlight() { return *backlight_; }
+
+    esp_err_t hold_power();
+    void release_power();
 
 private:
     DialBoardConfig config_{};

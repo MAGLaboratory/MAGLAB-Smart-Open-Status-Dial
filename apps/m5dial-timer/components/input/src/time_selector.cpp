@@ -58,6 +58,14 @@ void TimeSelector::task_entry(void* arg) {
     self->run();
 }
 
+void TimeSelector::set_input_locked(bool locked) {
+    input_locked_ = locked;
+    if (locked) {
+        last_activity_us_ = 0;
+        commit_sent_ = true;
+    }
+}
+
 void TimeSelector::run() {
     EncoderSample sample;
     const TickType_t wait_ticks = pdMS_TO_TICKS(10);
@@ -89,6 +97,9 @@ void TimeSelector::run() {
 }
 
 void TimeSelector::process_sample(const EncoderSample& sample) {
+    if (input_locked_) {
+        return;
+    }
     if (sample.delta_ticks == 0) {
         return;
     }

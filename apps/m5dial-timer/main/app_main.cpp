@@ -47,16 +47,69 @@ void touch_event_dispatch(void* arg) {
         vTaskDelete(nullptr);
         return;
     }
+
+    static bool input_locked = dial::g_time_selector.input_locked();
+    constexpr int32_t kEdgeAdjustSeconds = 60;   // 1 minute
+    constexpr int32_t kSwipeAdjustSeconds = 300; // 5 minutes
+
+    auto apply_delta = [](int32_t delta) {
+        dial::g_timer_engine.enqueue_quick_delta(delta);
+    };
+
     dial::TouchEvent event;
     while (true) {
-        if (xQueueReceive(queue, &event, portMAX_DELAY) == pdTRUE) {
-            switch (event.type) {
-                case dial::TouchEventType::Tap:
+        if (xQueueReceive(queue, &event, portMAX_DELAY) != pdTRUE) {
+            continue;
+        }
+
+        switch (event.type) {
+            case dial::TouchEventType::Tap:
+                switch (event.zone) {
+                    case dial::TapZone::TopEdge:
+                        apply_delta(kEdgeAdjustSeconds);
+                        break;
+                    case dial::TapZone::BottomEdge:
+                        apply_delta(-kEdgeAdjustSeconds);
+                        break;
+                    case dial::TapZone::LeftEdge:
+                        dial::g_timer_engine.enqueue_control(dial::ControlCommand::Reset);
+                        break;
+                    case dial::TapZone::RightEdge:
+                        dial::g_timer_engine.enqueue_control(dial::ControlCommand::ToggleRun);
+                        break;
+                    case dial::TapZone::Center:
+                    default:
+                        dial::g_timer_engine.enqueue_control(dial::ControlCommand::ToggleRun);
+                        break;
+                }
+                break;
+            case dial::TouchEventType::DoubleTap:
+                dial::g_timer_engine.enqueue_control(dial::ControlCommand::Reset);
+                break;
+            case dial::TouchEventType::LongPress:
+                if (event.zone == dial::TapZone::Center) {
                     dial::g_timer_engine.enqueue_control(dial::ControlCommand::ToggleRun);
-                    break;
-                default:
-                    break;
-            }
+                }
+                break;
+            case dial::TouchEventType::SwipeUp:
+                apply_delta(kSwipeAdjustSeconds);
+                break;
+            case dial::TouchEventType::SwipeDown:
+                apply_delta(-kSwipeAdjustSeconds);
+                break;
+            case dial::TouchEventType::SwipeLeft:
+                apply_delta(-kEdgeAdjustSeconds * 5);
+                break;
+            case dial::TouchEventType::SwipeRight:
+                apply_delta(kEdgeAdjustSeconds * 5);
+                break;
+            case dial::TouchEventType::TwoFingerTap:
+                input_locked = !input_locked;
+                dial::g_time_selector.set_input_locked(input_locked);
+                ESP_LOGI(TAG, "Touch: %s input", input_locked ? "Locked" : "Unlocked");
+                break;
+            default:
+                break;
         }
     }
 }

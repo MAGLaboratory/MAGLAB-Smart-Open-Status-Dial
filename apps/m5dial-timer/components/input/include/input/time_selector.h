@@ -49,6 +49,8 @@ public:
     void start();
 
     QueueHandle_t event_queue() const { return event_queue_; }
+    void set_input_locked(bool locked);
+    bool input_locked() const { return input_locked_; }
 
 private:
     static void task_entry(void* arg);
@@ -62,6 +64,7 @@ private:
     uint32_t last_timestamp_us_ = 0;
     uint64_t last_activity_us_ = 0;
     bool commit_sent_ = false;
+    bool input_locked_ = false;
 };
 
 extern TimeSelector g_time_selector;

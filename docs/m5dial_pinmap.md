@@ -2,6 +2,8 @@
 
 | Function | GPIO |
 |----------|------|
+| Battery sense (BAT_AD divider) | 4 |
+| Boot strap (IO0) | 0 |
 | Encoder push button | 5 |
 | Encoder I2C address | 0x06 |
 | Encoder I2C SCL (MT6701) | 2 |

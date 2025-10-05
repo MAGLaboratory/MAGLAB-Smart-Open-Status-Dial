@@ -16,11 +16,22 @@ cmake --build build/host-sim
 ./build/host-sim/m5dial_host_sim
 ```
 
-The simulator opens a 240×240 window and loops a 15-minute countdown. Mouse
-input is mapped to LVGL's pointer device for interactive testing.
+The simulator opens a 240×240 window and loops a 15-minute countdown by default.
+Mouse input is mapped to LVGL's pointer device for interactive testing.
+
+To replay recorded snapshots from hardware, pass a snapshot log path plus an optional modifier log:
+
+```
+./build/host-sim/m5dial_host_sim snapshots.txt [modifiers.txt]
+```
+
+Snapshot log format: each line `monotonic_us state setpoint_seconds remaining_ms` (state uses the `dial::TimerState` enum value). Lines starting with `#` are ignored.
+
+Modifier log format (optional): `monotonic_us type value`. Use `C <control>` for gesture commands (integer cast of `dial::ControlCommand`) or `D <delta_seconds>` for timer deltas.
+
+The simulator loops both logs after a short hold at the end.
 
 ### Tweaks
 
-- Update `kDemoSetpointSeconds` in `src/sim_main.cpp` to change the run length.
-- Replace the synthetic countdown with scripted snapshots once the timer engine
-  is host-portable.
+- Update `kDemoSetpointSeconds` in `src/sim_main.cpp` to change the synthetic run length.
+- Adjust the replay loop or add new event handling in `src/sim_main.cpp` as needed.

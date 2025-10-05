@@ -7,6 +7,7 @@ This application targets the M5Stack Dial (ESP32-S3) and implements a polished c
 - `DialBoard` initialises power hold, GC9A01 display + LEDC backlight, and the FT3267 touch controller.
 - Timer engine runs at 1 ms resolution, feeds LVGL snapshots, and persists state in NVS.
 - Baseline LVGL UI draws a progress arc and adaptive HH:MM[:SS] readout; host SDL simulator mirrors the layout.
+- Touch gestures: tap start/pause, double tap reset, edge taps adjust ±1 min, swipes jump ±5 min, two-finger tap locks the encoder.
 
 ## Build & Flash
 
@@ -29,6 +30,8 @@ scripts/host_sim.sh run
 ```
 
 The simulator launches a 240×240 window that follows the same snapshot updates the firmware publishes.
+Pass a snapshot log (`monotonic_us state setpoint_seconds remaining_ms`) to replay captured hardware sessions.
+Add a modifier log (`monotonic_us type value`, using `C` for control or `D` for delta seconds) to mirror gesture events.
 
 ## Further Reading
 

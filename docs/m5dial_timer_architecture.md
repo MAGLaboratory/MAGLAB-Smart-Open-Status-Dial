@@ -4,7 +4,8 @@
 
 - **Core**: ESP32-S3-WROOM-1U-N16R8 module (dual-core 240 MHz, 16 MB flash, 8 MB PSRAM, Wi-Fi/BLE)
 - **Display**: GC9A01 1.32" 240×240 round IPS TFT (Φ32.4 mm active area) on FPC-05F-16PH20 connector, driven over SPI
-- **Input**: MT6701CT-STD magnetic angle sensor on shared I2C bus with press button on GPIO5
+- **Input**: MT6701CT-STD magnetic angle sensor on shared I2C bus with press button on GPIO5; BOOT strap (IO0) held high via 10 kΩ pull-up
+- **Sensing**: Battery monitor on IO4 (`BAT_AD`) via 2×330 kΩ divider to GND
 - **Driver**: EG2133 power/backlight management for the round LCD
 - **Power chain**: KH-TYPE-C-16P USB-C, TP4054 Li-ion charger, ME6217C33 LDO, MT3608 boost converter
 - **Aux peripherals**: Optional DRV8833 haptic pads and speaker amp pads present but unused in firmware; ESP32 IO0 reserved for boot, IO3/7/21/35–40/45–48 unbonded
@@ -87,12 +88,12 @@ All tasks communicate through checksumed `struct` messages in a central `event_b
 
 ### Data Flow
 
-1. Touch + encoder tasks poll hardware and enqueue events (detent deltas, tap gestures).
+1. Touch + encoder tasks poll hardware and enqueue events (detent deltas, tap/double-tap/swipe/two-finger gestures).
 2. `TimeSelector` converts detents into configurable increments (15 min base with velocity multipliers) and pushes commit/control events.
 3. Upon inactivity (1 s), the selector commits the setpoint and transitions to `Countdown` or `Idle` based on auto-start configuration.
 4. Timer engine updates high-resolution remaining time; publishes to UI, LED, audio.
 5. UI renders 3 layers: background gradient (duration-aware color semantic), adaptive HH:MM:SS / MM:SS readout in a monospaced face, and a 360° progress ring with eased "spring unwind" motion that tracks durations up to 6 h. Color cues follow proportional thresholds (green >10 %, yellow 10–5 %, red ≤5 %) with floor guards at 10 min/5 min (or 2 min/1 min for short timers). Each threshold crossing animates via ≤150 ms fade and adds a non-color cue (ring pulse) for accessibility. LVGL tasks run with `lv_tick_inc(5)` triggered by `esp_timer` every 5 ms.
-6. Optional feedback outputs (LED/audio) can subscribe to the same event stream once hardware is added. Touch taps currently toggle start/pause; additional gestures can layer on the same queue.
+6. Optional feedback outputs (LED/audio) can subscribe to the same event stream once hardware is added. Gestures include tap (start/pause), double tap (reset), edge taps (±1 minute), swipes (±5 minutes), and two-finger tap (input lock) layered on the same queue.
 
 ### State Machine
 

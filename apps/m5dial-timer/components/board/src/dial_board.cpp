@@ -364,6 +364,7 @@ esp_err_t TouchController::read(TouchPoint* point) {
     point->touched = false;
     point->x = 0;
     point->y = 0;
+    point->touch_count = touches;
 
     if (!initialized_) {
         return ESP_ERR_INVALID_STATE;
@@ -386,6 +387,7 @@ esp_err_t TouchController::read(TouchPoint* point) {
     point->touched = true;
     point->x = x;
     point->y = y;
+    point->touch_count = touches;
     return ESP_OK;
 }
 
@@ -401,7 +403,7 @@ esp_err_t DialBoard::init(const DialBoardConfig& config) {
 
     config_ = config;
 
-    ESP_RETURN_ON_ERROR(ensure_gpio_output(PinMap::POWER_HOLD, 1), TAG, "power hold failed");
+    ESP_RETURN_ON_ERROR(hold_power(), TAG, "power hold failed");
 
     if (config.enable_display) {
         backlight_ = std::make_unique<Backlight>();
@@ -428,6 +430,16 @@ esp_err_t DialBoard::init(const DialBoardConfig& config) {
     initialized_ = true;
     ESP_LOGI(TAG, "Dial board initialised");
     return ESP_OK;
+}
+
+
+esp_err_t DialBoard::hold_power() {
+    return ensure_gpio_output(PinMap::POWER_HOLD, 0);
+}
+
+void DialBoard::release_power() {
+    auto pin = static_cast<gpio_num_t>(PinMap::POWER_HOLD);
+    gpio_set_direction(pin, GPIO_MODE_INPUT);
 }
 
 void DialBoard::update() {

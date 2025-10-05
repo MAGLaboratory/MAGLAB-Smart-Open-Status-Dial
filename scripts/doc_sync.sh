@@ -31,6 +31,8 @@ LABELS = {
     "MOTOR_IN2": "Motor driver IN2",
     "MOTOR_IN3": "Motor driver IN3",
     "RGB_LED_DATA": "LED ring data (placeholder)",
+    "BATTERY_SENSE": "Battery sense (BAT_AD divider)",
+    "BOOT_STRAP": "Boot strap (IO0)",
 }
 
 pattern = re.compile(r"static constexpr int (\w+) = (-?(?:0x)?[0-9A-Fa-f]+);")
